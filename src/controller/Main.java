@@ -4,10 +4,12 @@ package controller;
 import dao.ContaDAO;
 import exception.ContaIDesconhecidaException;
 import exception.ContaPropriaException;
+import model.ContaConjunta;
 import model.ContaCorrente;
 import exception.SaldoInsuficienteException;
 import model.TarifaStrategy;
 import model.TarifaTransferenciaStrategy;
+import service.AtendimentoBancario;
 import service.TarifaService;
 import service.TarifaTransferenciaService;
 import util.Filtragem;
@@ -109,6 +111,8 @@ public class Main {
             System.out.println("12 - Transferir entre contas");
             System.out.println("13 - Remover conta");
             System.out.println("14 - Ver histórico de transferências");
+            System.out.println("15 - Atendimento Bancário");
+            System.out.println("16 - Conta Conjunta");
             System.out.println("0 - Sair");
             opcao = sc.nextInt();
             switch (opcao) {
@@ -361,6 +365,94 @@ public class Main {
                 case 14:
                     dao.listarHistoricoTransferencias();
                     break;
+                case 15:
+                    System.out.println("Digite o número da conta para o atendimento:");
+                    int numeroConta = sc.nextInt();
+                    ContaCorrente contaEscolhida = null;
+
+                    for (ContaCorrente c : contas) {
+                        if (c.getNumero() == numeroConta) {
+                            contaEscolhida = c;
+                            break;
+                        }
+                    }
+
+                    if (contaEscolhida != null) {
+                        System.out.println("Digite o valor que deseja depositar nesta sessão:");
+                        double valorDep = sc.nextDouble();
+
+                        System.out.println("Digite o valor que deseja sacar nesta sessão:");
+                        double valorSaq = sc.nextDouble();
+
+                        System.out.println("\n--- DISPARANDO 4 CAIXAS AO MESMO TEMPO ---");
+
+                        Runnable a1 = new AtendimentoBancario(contaEscolhida, 1, 0);
+                        Runnable a2 = new AtendimentoBancario(contaEscolhida, 2, valorDep);
+                        Runnable a3 = new AtendimentoBancario(contaEscolhida, 3, valorSaq);
+                        Runnable a4 = new AtendimentoBancario(contaEscolhida, 4, 0);
+
+                        Thread t1 = new Thread(a1, "Caixa-01");
+                        Thread t2 = new Thread(a2, "Caixa-02");
+                        Thread t3 = new Thread(a3, "Caixa-03");
+                        Thread t4 = new Thread(a4, "Caixa-04");
+
+                        t1.start();
+                        t2.start();
+                        t3.start();
+                        t4.start();
+
+                        try {
+                            t1.join();
+                            t2.join();
+                            t3.join();
+                            t4.join();
+                        } catch (InterruptedException e) {
+                            System.out.println("Erro: " + e.getMessage());
+                        }
+
+                        dao.atualizarSaldo(contaEscolhida.getNumero(), contaEscolhida.getSaldo());
+                        salvarContas(contas);
+
+                        System.out.println("\nTodos os atendimentos foram concluídos!");
+
+                    } else {
+                        System.out.println("Erro: Conta não encontrada.");
+                    }
+                    break;
+                case 16:
+                    System.out.println("\n--CONTA CONJUNTA--");
+                    System.out.println("Digite o número da conta:");
+                    int numConta = sc.nextInt();
+                    sc.nextLine();
+                    System.out.println("Digite o nome do primeiro titular:");
+                    String titular1 = sc.nextLine();
+
+                    System.out.println("Digite o nome do segundo titular:");
+                    String titular2 = sc.nextLine();
+
+                    System.out.println("Digite o saldo inicial da conta:");
+                    double saldoInicial = sc.nextDouble();
+                    System.out.println("Digite o valor que ambos tentarão sacar ao mesmo tempo:");
+                    double valorSaque = sc.nextDouble();
+                    ContaConjunta contaFamilia = new ContaConjunta(numConta, saldoInicial, titular1, titular2);
+                    Runnable tarefaA = new AtendimentoBancario(contaFamilia, 3, valorSaque);
+                    Runnable tarefaB = new AtendimentoBancario(contaFamilia, 3, valorSaque);
+
+                    Thread threadA = new Thread(tarefaA, titular1);
+                    Thread threadB = new Thread(tarefaB, titular2);
+                    threadA.start();
+                    threadB.start();
+
+                    try {
+                        threadA.join();
+                        threadB.join();
+                    } catch (InterruptedException e) {
+                        System.out.println("Erro: " + e.getMessage());
+                    }
+
+                    System.out.println("\nSaldo Final da Conta Conjunta: R$ " + contaFamilia.getSaldo());
+                    break;
+
 
                 case 0:
                     System.out.println("Saiu!");

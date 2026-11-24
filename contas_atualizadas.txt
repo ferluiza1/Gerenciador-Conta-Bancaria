@@ -1,6 +1,6 @@
-44,benedita,27485.0
-100,fernanda,377.0
+44,benedita,28995.0
 123,isa,10980.0
-222,viviane,22717.0
+222,viviane,20000.0
 333,marcelo,250500.0
+3342,fer,334233.0
 5000,alyssa,48990.0
